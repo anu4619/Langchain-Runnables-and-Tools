@@ -21,8 +21,12 @@ summerize the following news into clear bullet points
 
 news_result = search_tool.run("Latest AI news of 2026")
 
-chain = prompt|llm|StrOutputParser()
+#chain = prompt|llm|StrOutputParser()
 
-result = chain.invoke({"news":news_result})
+#result = chain.invoke({"news":news_result})
 
-print(result)
+#print(result)
+
+print(search_tool.name)
+print(search_tool.description)
+print(search_tool.args)
