@@ -1,17 +1,19 @@
+from unittest import result
 
 from dotenv import load_dotenv
 load_dotenv()
-
+from rich import print
 from langchain_openai import ChatOpenAI
 from langchain.tools import tool
-from rich import print
-
+from langchain_core.messages import HumanMessage
 # 1. Create a tool
 @tool
 def get_text_length(text: str) -> int:
     """Returns the number of characters in a given text."""
     return len(text)
-
+tools={
+    "get_text_length" : get_text_length
+}
 # 2. Initialize model
 llm = ChatOpenAI(
     model="gpt-4o-mini",
@@ -21,16 +23,22 @@ llm = ChatOpenAI(
 # 3. Bind tool
 llm_with_tool = llm.bind_tools([get_text_length])
 
-# 4. Normal LLM response
-result1 = llm.invoke("hello")
+messages= []
+prompt=input("You:")
+query = HumanMessage(prompt)
+messages.append(query)
 
-# 5. LLM response with tool binding
-result2 = llm_with_tool.invoke(
-    "What is the length of the word hello?"
-)
+result = llm_with_tool.invoke(messages)
 
-print("Normal response:")
-print(result1)
+messages.append(result)
 
-print("\nResponse with tool binding:")
-print(result2)
+print(messages)
+
+if result.tool_calls:
+    tool_name = result.tool_calls[0]['name']
+    tool_message = tools[tool_name].invoke(result.tool_calls[0])
+    messages.append(tool_message)
+    
+
+result = llm_with_tool.invoke(messages)
+print(result.content)
