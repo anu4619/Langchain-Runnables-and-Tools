@@ -32,7 +32,7 @@ result = llm_with_tool.invoke(messages)
 
 messages.append(result)
 
-print(messages)
+
 
 if result.tool_calls:
     tool_name = result.tool_calls[0]['name']
