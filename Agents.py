@@ -10,7 +10,7 @@ from langchain.tools import tool
 from langchain_core.messages import HumanMessage,ToolMessage
 from tavily import TavilyClient
 from rich import print
-
+from langchain.agents.middleware import wrap_tool_call
 from langchain.agents import create_agent
 
 #now lets create some tools
@@ -70,10 +70,24 @@ def get_news(city:str)->str:
 
 llm=ChatOpenAI(model="gpt-4o-mini")
 
+@wrap_tool_call
+def human_approval(request, handler):
+    """Ask for human approval before every tool call."""
+    tool_name = request.tool_call["name"]
+    confirm = input(f"Agent wants to call '{tool_name}'. Approve? (yes/no):")
+
+    if confirm.lower()!= "yes":
+        return ToolMessage(
+            content ="Tool call denied by user.",
+            tool_call_id=request.tool_call["id"]
+        )
+    return handler(request)
+
 agent = create_agent(
     model=llm,
     tools =[get_weather,get_news],
-    system_prompt = "you are a helpful city assistant."
+    system_prompt = "you are a helpful city assistant.",
+    middleware = [human_approval]
 
 )
 
