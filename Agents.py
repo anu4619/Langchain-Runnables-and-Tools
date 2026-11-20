@@ -10,6 +10,9 @@ from langchain.tools import tool
 from langchain_core.messages import HumanMessage,ToolMessage
 from tavily import TavilyClient
 from rich import print
+
+from langchain.agents import create_agent
+
 #now lets create some tools
 
 #weather tool
@@ -67,73 +70,20 @@ def get_news(city:str)->str:
 
 llm=ChatOpenAI(model="gpt-4o-mini")
 
-tools={
-    "get_weather":get_weather,
-    "get_news":get_news
-}
+agent = create_agent(
+    model=llm,
+    tools =[get_weather,get_news],
+    system_prompt = "you are a helpful city assistant."
 
-llm_with_tool = llm.bind_tools([get_weather,get_news])
+)
 
-#Agent LOOP -very important
-
-messages = []
-
-print("City Intelligence System")
-print("Type 0 to exit")
+print("city agent: | type 0 to quit")
 
 while True:
-    user_input = input("You: ")
-
+    user_input = input("you :")
     if user_input == "0":
         break
-
-    messages.append(HumanMessage(content=user_input))
-
-    while True:
-
-        result = llm_with_tool.invoke(messages)
-        messages.append(result)
-
-        if result.tool_calls:
-
-            for tool_call in result.tool_calls:
-
-                tool_name = tool_call["name"]
-
-                # Human approval
-                confirm = input(
-                    f"Agent wants to call {tool_name}. Approve? (yes/no): "
-                )
-
-                if confirm.lower() == "yes":
-
-                    # Execute tool
-                    tool_result = tools[tool_name].invoke(
-                        tool_call["args"]
-                    )
-
-                else:
-                    # Handle denied tool call
-                    tool_result = "Tool execution denied by the user."
-
-                    print(tool_result)
-
-                # Add tool response in BOTH cases
-                messages.append(
-                    ToolMessage(
-                        content=str(tool_result),
-                        tool_call_id=tool_call["id"]
-                    )
-                )
-
-            # Send tool results back to LLM
-            continue
-
-        else:
-            print("\nFinal answer:\n")
-            print(result.content)
-            print("\n" + "=" * 50 + "\n")
-            break
-
-
-#user input -> LLM(decides tool) -> tool execution -> toolMessage added -> loop again -> LLM(final answer)
+    result = agent.invoke({
+        "messages": [{"role": "user", "content": user_input}]
+    })
+    print("bot : ",result['messages'][-1].content)
